@@ -1,0 +1,7 @@
+/bin/
+/coverage.out
+/deploy/certs/
+/deploy/passwords
+/deploy/broker-data/
+/configs/local*.yaml
+.env
