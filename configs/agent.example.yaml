@@ -1,0 +1,26 @@
+# Replace the endpoint, response rules, node ID and Broker with your actual values.
+node_id: worker-01
+sinks: [mqtt]
+probe:
+  endpoint: http://auth.example.edu/check
+  interval: 30s
+  timeout: 5s
+  valid_for: 90s
+  authenticated_rule:
+    status_code: 200
+    body_equals: authenticated
+  unauthenticated_rule:
+    status_code: 200
+    body_equals: unauthenticated
+  portal_hosts: [login.example.edu]
+mqtt:
+  broker: tls://mqtt.example.edu:8883
+  topic_prefix: cnld/nodes
+  keep_alive: 30s
+  publish_timeout: 5s
+  max_backoff: 30s
+  username_env: CNLD_MQTT_USERNAME
+  password_env: CNLD_MQTT_PASSWORD
+  # ca_file: /etc/cnld/ca.crt
+  # cert_file: /etc/cnld/client.crt
+  # key_file: /etc/cnld/client.key
