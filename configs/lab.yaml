@@ -1,0 +1,19 @@
+node_id: lab-01
+sinks: [mqtt]
+probe:
+  endpoint: http://127.0.0.1:18080/check
+  interval: 3s
+  timeout: 1s
+  valid_for: 10s
+  authenticated_rule:
+    status_code: 200
+    body_equals: authenticated
+  unauthenticated_rule:
+    status_code: 200
+    body_equals: unauthenticated
+  portal_hosts: [login.example.edu]
+mqtt:
+  broker: tcp://127.0.0.1:1883
+  keep_alive: 4s
+  publish_timeout: 2s
+  max_backoff: 8s
