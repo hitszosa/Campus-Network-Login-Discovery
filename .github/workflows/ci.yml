@@ -33,3 +33,18 @@ jobs:
       - run: go test -race ./...
       - run: go vet ./...
       - run: go build ./...
+
+  integration:
+    name: MQTT integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: stable
+          cache: true
+      - name: Install Broker
+        run: sudo apt-get update && sudo apt-get install -y mosquitto mosquitto-clients
+      - name: Test real Broker lifecycle, faults, TLS and ACL
+        run: CNLD_INTEGRATION=1 go test -race -v -count=1 -timeout 3m ./tests/integration
