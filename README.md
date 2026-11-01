@@ -1,10 +1,45 @@
-[参考](https://gist.github.com/0702hjj/fb61ffd44072fb8e0ba95c545c7dff6a)
+# Campus-Network Login Discovery（CNLD）
 
-[逐步实现指导书](IMPLEMENTATION_GUIDE.md)：面向只有 C 基础的读者，先用约 1 分钟解释设计，再按每节约 10 分钟完成 Go、HTTP、MQTT 与部署实验。参考实现保存在指导书代码块中，供逐节动手实现。
+[![CI](https://github.com/hitszosa/Campus-Network-Login-Discovery/actions/workflows/ci.yml/badge.svg)](https://github.com/hitszosa/Campus-Network-Login-Discovery/actions/workflows/ci.yml)
+[![Build](https://github.com/hitszosa/Campus-Network-Login-Discovery/actions/workflows/build.yml/badge.svg)](https://github.com/hitszosa/Campus-Network-Login-Discovery/actions/workflows/build.yml)
+
+轻量 Go Agent：周期访问校园网认证接口，将认证结果和节点标签通过 MQTT 上报。区分已认证、明确未认证、未知；MQTT 遗嘱单独表示 Agent 连接离线。默认独立运行，无需 Kubernetes。
+
+## 快速试用
+
+需要 Go 1.24+ 和 Mosquitto。从仓库根目录执行 `make build`，然后在四个终端分别运行：
+
+```sh
+mosquitto -c deploy/mosquitto-lab.conf -v
+```
+
+```sh
+go run ./cmd/fake-campus
+```
+
+```sh
+./bin/cnld-watch -node lab-01
+```
+
+```sh
+./bin/cnld-agent -config configs/lab.yaml
+```
+
+执行 `printf no > /tmp/cnld-mode`，下一轮可看到未认证状态；`printf yes > /tmp/cnld-mode` 恢复。单次探测使用 `./bin/cnld-agent probe -config configs/lab.yaml`。首次运行实验时先执行 `printf yes > /tmp/cnld-mode`，并确认 1883 没有其他 Broker 占用。
+
+实际部署复制并修改 [configs/agent.example.yaml](configs/agent.example.yaml)。TLS、凭证、Topic 权限、systemd、容器及构建产物的使用方式见[运行与部署](docs/OPERATIONS.md)。CI 提供 Linux amd64/arm64 二进制、双架构 OCI 和 Docker 导入文件。
+
+## 文档与验证
+
+- [需求文档](https://gist.github.com/0702hjj/fb61ffd44072fb8e0ba95c545c7dff6a)
+- [逐步实现指导书](IMPLEMENTATION_GUIDE.md)：用约 1 分钟解释设计，每节约 10 分钟，从 C 基础逐步学习实现。
+- [运行与部署](docs/OPERATIONS.md)：使用当前仓库中的完整实现。
+- `make test`：普通测试、race 和 vet；`make integration`：真实 Mosquitto 故障、TTL、TLS 和 ACL 测试。
+- `make dist`：生成两种 Linux 架构的 Agent、订阅工具及校验和；`make image`：构建本机容器镜像。
 
 ## Architecture（Go 实现设计）
 
-本节依据上述 `cnld-requirements.md`（查阅日期：2026-10-28）设计，描述待实现的架构。首期交付单个 Go module、单个 `cnld-agent` 二进制，在 Linux 主机、虚拟机或 OCI 容器中独立运行，通过 MQTT 上报校园网状态。Kubernetes 是后续可选 sink；自动登录、修复脚本、调度器和监控 UI 不在首期范围内。
+本节依据上述 `cnld-requirements.md`（查阅日期：2026-10-28）设计，描述当前独立版及后续扩展边界。首期交付单个 Go module、单个 `cnld-agent` 二进制，在 Linux 主机、虚拟机或 OCI 容器中独立运行，通过 MQTT 上报校园网状态。Kubernetes 是后续可选 sink；自动登录、修复脚本、调度器和监控 UI 不在首期范围内。
 
 ### 运行架构
 
@@ -150,7 +185,7 @@ MQTT sink 独占连接生命周期和序号；同一连接内序号递增，同�
 
 具体实现中，online 被确认后记录 `readyAt` 并触发采样，丢弃邮箱中采样开始时间早于 `readyAt` 的结果。这也覆盖“重连时上一轮采样尚未结束”的情况。进程内比较保留 `time.Time` 的单调时钟部分，生成 JSON 时再转 UTC；每个连接使用独立的断连通知 channel，旧回调不能影响新连接。
 
-指导书使用 [Eclipse Paho Go MQTT 3.1.1 client](https://github.com/eclipse-paho/paho.mqtt.golang) `v1.5.1` 作为实验参考，由 sink 管理退避与每次连接的客户端重建，避免库自动重连复用旧 Will 的 `connection_id`。通过自定义连接函数保存底层 socket；离线发布失败时先关闭 socket，再清理客户端，避免正常 DISCONNECT 抑制遗嘱。连接回调仅通知 worker，不在回调中执行阻塞探测或等待发布。
+指导书使用 [Eclipse Paho Go MQTT 3.1.1 client](https://github.com/eclipse-paho/paho.mqtt.golang) `v1.5.1`，当前实现沿用该版本，由 sink 管理退避与每次连接的客户端重建，避免库自动重连复用旧 Will 的 `connection_id`。通过自定义连接函数保存底层 socket；离线发布失败时先关闭 socket，再清理客户端，避免正常 DISCONNECT 抑制遗嘱。连接回调仅通知 worker，不在回调中执行阻塞探测或等待发布。
 
 ### 消费者如何建立当前可信状态
 
@@ -178,5 +213,5 @@ flowchart TD
 - MQTT 默认验证 TLS 服务端证书，支持自定义 CA 与客户端证书；凭证来自环境变量或文件。Broker ACL 限制到本节点两个 Topic（含 Will 权限），部署时验证 retained 持久化。日志记录节点、变化、错误类别和重连事件，不记录凭证或完整敏感响应体。
 - core 使用无 I/O 的表驱动测试覆盖成功、未认证、门户、普通重定向、错误及未知响应；HTTP 用 `httptest` 验证超时、响应体上限和重定向保留。循环测试验证串行采样、最新值覆盖、Broker 故障隔离及退出取消。
 - MQTT 用真实 Broker 做集成验证：新订阅者 retained 消息、强杀、丢弃网络包、正常退出、重连新 ID、离线发布失败，以及重复、跨 Topic 乱序、过期和探测停止。Broker 重启与消费者断网后必须重新建立可信状态。
-- Go 实现阶段运行 `go test ./...`、`go test -race ./...`、`go vet ./...`；检查默认入口的 `go list -deps` 不含 K8s 客户端，交付 Linux amd64/arm64 二进制与 OCI 镜像。当前仓库仅为设计文档，上述目录与检查均为实施计划。
+- Go 实现阶段运行 `go test ./...`、`go test -race ./...`、`go vet ./...`；检查默认入口的 `go list -deps` 不含 K8s 客户端，交付 Linux amd64/arm64 二进制与 OCI 镜像。当前仓库已提供上述独立版实现，Actions 同时验证 Docker 与 systemd 的上报及正常退出，并导出构建产物。
 - 后续 K8s sink 只 patch CNLD 管理的标签；未知映射为 `unknown`。Node Label 没有 TTL，须另行设计结合 Node Ready 与控制器的失效策略，MQTT LWT 不会自动清理标签。
