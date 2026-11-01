@@ -5,3 +5,8 @@
 /deploy/broker-data/
 /configs/local*.yaml
 .env
+*.env
+/configs/tls.yaml
+/configs/blackhole.yaml
+/configs/ttl.yaml
+/deploy/mosquitto-tls.conf

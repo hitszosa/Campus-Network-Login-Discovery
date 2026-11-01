@@ -1,0 +1,12 @@
+.git
+.github
+bin
+configs
+deploy
+docs
+scripts
+tests
+*.md
+.env
+**/*.env
+**/*.key

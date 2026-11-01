@@ -1,5 +1,7 @@
 # CNLD：从 C 基础开始，逐步实现 Go Agent
 
+> 仓库已按本指导书完成独立版。直接运行请看[运行与部署](docs/OPERATIONS.md)。想从零重做实验时，在另一个空目录按第 01 节开始；现有仓库无需再次 `go mod init` 或覆盖已有源码。代码块保留教学版本，当前源码另外包含 `probe` 子命令、更完整的配置检查、TLS 订阅和自动故障测试。
+
 ## 先读这一分钟：为什么这样设计
 
 我们要做的事是：每隔几秒访问认证接口，判断结果，再把最新状态送给 MQTT Broker。
@@ -16,9 +18,9 @@ HTTP 和 MQTT 有不同的失败方式。HTTP 超时，只能说“不知道是�
 
 每节按“2 分钟读说明、6 分钟写代码、2 分钟验证”安排。共 **35 节，约 5 小时 50 分钟**，可以分几天做；安装工具和首次下载依赖另计。每节写完先看完成标志。
 
-代码块前写“新建”的就是完整文件；写“替换”的就是覆盖该文件。写“追加”时才放在原文件后面。终端命令都从仓库根目录执行。代码中的 module 路径统一为 `github.com/0702hjj/Campus-Network-Login-Discovery`，先照用；若改成自己的地址，所有 import 一起改。
+代码块前写“新建”的就是完整文件；写“替换”的就是覆盖该文件。写“追加”时才放在原文件后面。终端命令都从仓库根目录执行。代码中的 module 路径统一为 `github.com/hitszosa/Campus-Network-Login-Discovery`，先照用；若改成自己的地址，所有 import 一起改。
 
-本书提供的是你要亲手实现的参考代码，仓库现在不自动生成 Go 源文件。`cmd/fake-campus`、`cmd/fake-link` 和 `cmd/cnld-watch` 都是实验工具；实际部署的 Agent 不启动它们。
+本书提供可以逐步动手的参考代码；现有仓库同时提供已完成的 Go 实现。`cmd/fake-campus`、`cmd/fake-link` 和 `cmd/cnld-watch` 都是实验工具；实际部署的 Agent 不启动它们。
 
 **学习顺序：** 01–05 普通 Go 函数 → 06–10 HTTP 与循环 → 11–12 channel → 13–22 MQTT Agent → 23–29 消费与故障实验 → 30–35 安全部署与验收。
 
@@ -85,7 +87,7 @@ module 是本仓库 Go 代码的统一名字；package 是一个目录里的代�
 
 ```sh
 go version
-go mod init github.com/0702hjj/Campus-Network-Login-Discovery
+go mod init github.com/hitszosa/Campus-Network-Login-Discovery
 mkdir -p cmd/cnld-agent cmd/fake-campus cmd/cnld-watch cmd/fake-link
 mkdir -p internal/probecore internal/probemqtt configs deploy tests/integration
 mkdir -p bin
@@ -425,7 +427,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/0702hjj/Campus-Network-Login-Discovery/internal/probecore"
+	"github.com/hitszosa/Campus-Network-Login-Discovery/internal/probecore"
 )
 
 func newHTTP(timeout time.Duration) *http.Client {
@@ -562,7 +564,7 @@ import (
  "fmt"
  "time"
 
- "github.com/0702hjj/Campus-Network-Login-Discovery/internal/probecore"
+ "github.com/hitszosa/Campus-Network-Login-Discovery/internal/probecore"
 )
 
 func main() {
@@ -610,7 +612,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/0702hjj/Campus-Network-Login-Discovery/internal/probecore"
+	"github.com/hitszosa/Campus-Network-Login-Discovery/internal/probecore"
 )
 
 type sink interface{ Submit(probecore.Result) }
@@ -655,7 +657,7 @@ import (
  "syscall"
  "time"
 
- "github.com/0702hjj/Campus-Network-Login-Discovery/internal/probecore"
+ "github.com/hitszosa/Campus-Network-Login-Discovery/internal/probecore"
 )
 
 func main() {
@@ -695,7 +697,7 @@ goroutine 之间需要传递结果。现在准备一个邮箱，先单独测试�
 ```go
 package probemqtt
 
-import "github.com/0702hjj/Campus-Network-Login-Discovery/internal/probecore"
+import "github.com/hitszosa/Campus-Network-Login-Discovery/internal/probecore"
 
 // 只有串行探测循环调用 Submit；worker 只接收。
 type Mailbox struct{ C chan probecore.Result }
@@ -722,7 +724,7 @@ func (m *Mailbox) Submit(r probecore.Result) {
 package probemqtt
 
 import (
-	"github.com/0702hjj/Campus-Network-Login-Discovery/internal/probecore"
+	"github.com/hitszosa/Campus-Network-Login-Discovery/internal/probecore"
 	"testing"
 )
 
@@ -765,7 +767,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/0702hjj/Campus-Network-Login-Discovery/internal/probecore"
+	"github.com/hitszosa/Campus-Network-Login-Discovery/internal/probecore"
 )
 
 type recorder struct{ C chan probecore.Result }
@@ -922,8 +924,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/0702hjj/Campus-Network-Login-Discovery/internal/probecore"
-	"github.com/0702hjj/Campus-Network-Login-Discovery/internal/probemqtt"
+	"github.com/hitszosa/Campus-Network-Login-Discovery/internal/probecore"
+	"github.com/hitszosa/Campus-Network-Login-Discovery/internal/probemqtt"
 	"go.yaml.in/yaml/v3"
 )
 
@@ -1504,8 +1506,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/0702hjj/Campus-Network-Login-Discovery/internal/probecore"
-	"github.com/0702hjj/Campus-Network-Login-Discovery/internal/probemqtt"
+	"github.com/hitszosa/Campus-Network-Login-Discovery/internal/probecore"
+	"github.com/hitszosa/Campus-Network-Login-Discovery/internal/probemqtt"
 )
 
 func main() {
@@ -1569,7 +1571,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/0702hjj/Campus-Network-Login-Discovery/internal/probemqtt"
+	"github.com/hitszosa/Campus-Network-Login-Discovery/internal/probemqtt"
 )
 
 type view struct {
@@ -1639,7 +1641,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/0702hjj/Campus-Network-Login-Discovery/internal/probemqtt"
+	"github.com/hitszosa/Campus-Network-Login-Discovery/internal/probemqtt"
 )
 
 func TestView(t *testing.T) {
@@ -1722,7 +1724,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/0702hjj/Campus-Network-Login-Discovery/internal/probemqtt"
+	"github.com/hitszosa/Campus-Network-Login-Discovery/internal/probemqtt"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
@@ -2273,7 +2275,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/0702hjj/Campus-Network-Login-Discovery/internal/probemqtt"
+	"github.com/hitszosa/Campus-Network-Login-Discovery/internal/probemqtt"
 )
 
 func start(t *testing.T, dir, name string, args ...string) *exec.Cmd {
@@ -2517,7 +2519,7 @@ go list -deps ./cmd/cnld-agent > /tmp/cnld-deps.txt
 
 ### 参考代码验证记录
 
-本文中的 Agent、假接口、假链路与本机订阅工具曾从代码块拼装到临时 Go module 中验证。普通测试、race 检查和 vet 通过；使用真实 Mosquitto 验证了认证变化、正常退出、强杀遗嘱、双向丢包和新连接恢复。TLS CA、用户名密码、Topic ACL、错误 CA 拒绝和 Broker 重启后的 retained 持久化也已验证。第 34 节的自动集成测试已通过，Linux amd64/arm64 二进制交叉编译也已通过。systemd、Docker 运行与双架构 OCI 导出尚未在当前环境执行；这些步骤由你在实验机上完成。
+本文中的 Agent、假接口、假链路与本机订阅工具曾从代码块拼装到临时 Go module 中验证。普通测试、race 检查和 vet 通过；使用真实 Mosquitto 验证了认证变化、正常退出、强杀遗嘱、双向丢包和新连接恢复。TLS CA、用户名密码、Topic ACL、错误 CA 拒绝和 Broker 重启后的 retained 持久化也已验证。第 34 节的自动集成测试已通过，Linux amd64/arm64 二进制交叉编译也已通过。当前仓库的 Actions 还执行真实 Broker 故障测试、TLS/mTLS 与 ACL 测试，并提供 systemd、Docker 上报/正常退出验证及双架构 OCI 导出。当前源码的完整验证入口为 `make test`、`make integration` 和 `.github/workflows/`；实际校园网响应规则需要使用你自己的样本配置。
 
 **本节完成标志：** 能从一次观测值解释标签为什么变化，并能用订阅结果说明它何时失去可信度。这比只看到进程一直在运行更能说明实验完成。
 

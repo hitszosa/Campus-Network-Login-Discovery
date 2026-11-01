@@ -1,0 +1,21 @@
+[Unit]
+Description=Campus network discovery agent
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=cnld
+Group=cnld
+ExecStart=/usr/local/bin/cnld-agent -config /etc/cnld/config.yaml
+EnvironmentFile=-/etc/cnld/credentials.env
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

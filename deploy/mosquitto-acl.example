@@ -1,0 +1,7 @@
+user agent-worker-01
+topic write cnld/nodes/worker-01/report
+topic write cnld/nodes/worker-01/availability
+
+user observer
+topic read cnld/nodes/+/report
+topic read cnld/nodes/+/availability
