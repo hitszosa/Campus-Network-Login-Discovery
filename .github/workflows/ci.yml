@@ -46,5 +46,9 @@ jobs:
           cache: true
       - name: Install Broker
         run: sudo apt-get update && sudo apt-get install -y mosquitto mosquitto-clients
+      - name: Allow only CI fixtures in the Broker AppArmor profile
+        run: ./tests/ci/prepare-broker.sh
       - name: Test real Broker lifecycle, faults, TLS and ACL
+        env:
+          TMPDIR: /tmp/cnld-mqtt-ci
         run: CNLD_INTEGRATION=1 go test -race -v -count=1 -timeout 3m ./tests/integration
